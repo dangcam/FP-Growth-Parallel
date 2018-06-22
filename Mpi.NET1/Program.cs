@@ -11,7 +11,7 @@ namespace Mpi.NET1
 {
     class Program
     {
-        // MPIEXEC -n 3 Mpi.NET1.exe "data3.txt" "50" "70"
+        // MPIEXEC -n 3 Mpi.NET1.exe "data3.txt" "50"
         static void Main(string[] args)
         {
        
@@ -93,10 +93,11 @@ namespace Mpi.NET1
                         comm.Send(tongHop, i, 2);// gửi tới các tiến trình i, tag 2
                     }
                     //
-                    Dictionary<int, Dictionary<int, int>> Pall = new Dictionary<int, Dictionary<int, int>>();
+                    Dictionary < int,Dictionary<int, Dictionary<int, int>>> Pall = 
+                        new Dictionary<int, Dictionary<int, Dictionary<int, int>>>();
                     for (int i = 1; i < comm.Size; i++)
                     {
-                        Dictionary<int, Dictionary<int, int>> P;
+                        Dictionary < int,Dictionary<int, Dictionary<int, int>>> P;
                         comm.Receive(i, 3, out P);// nhận từ i, tag 1
                         foreach (var itemset in P)
                         {
@@ -104,10 +105,18 @@ namespace Mpi.NET1
                             {
                                 foreach (var item in itemset.Value)
                                 {
-                                    Dictionary<int, int> keyValues = Pall[itemset.Key];
+                                    Dictionary<int,Dictionary<int, int>> keyValues = Pall[itemset.Key];                                 
                                     if (keyValues.ContainsKey(item.Key))
                                     {
-                                        keyValues[item.Key] += item.Value;
+                                        Dictionary<int, int> kv = keyValues[item.Key];
+                                        //keyValues[item.Key] += item.Value;
+                                        foreach(var k in item.Value)
+                                        {
+                                            if (kv.ContainsKey(k.Key))
+                                                kv[k.Key] += k.Value;
+                                            else
+                                                kv.Add(k.Key, k.Value);
+                                        }
                                     }
                                     else
                                     {
@@ -122,52 +131,74 @@ namespace Mpi.NET1
                             }
                         }
                     }
-                    //foreach (var itemset in Pall)
-                    //{
-                    //    Console.WriteLine("Item {0}: ", itemset.Key);
-                    //    foreach (var item in itemset.Value)
-                    //        Console.WriteLine("Item {0} count {1}", item.Key, item.Value);
-                    //}
+                   
                     List<int> itemkey = new List<int>(Pall.Keys);
                     foreach (var itemset in itemkey)
                     {
-                        Dictionary<int, int> keyValues = Pall[itemset];
+                        Dictionary < int,Dictionary<int, int>> keyValues = Pall[itemset];
+                        Dictionary<int, int> coutValue = CountValue(keyValues);
+                        //PrintDictionary(coutValue);
                         List<int> kv = new List<int>(keyValues.Keys);
                         foreach (var item in kv)
                         {
-                            if ((float)keyValues[item] / len * 100.0 < support)
-                                keyValues.Remove(item);
+                            Dictionary<int, int> keyValue = keyValues[item];
+                            List<int> ikey = new List<int>(keyValue.Keys);
+                            foreach (var k in ikey)
+                                if ((float)coutValue[k] / len * 100.0 < support)
+                                    keyValue.Remove(k);
+                            keyValues[item] = keyValue;
                         }
                         //keyValues.Add(itemset, tongHop[itemset]);
                         Pall[itemset] = keyValues;
                     }
-
+                    //foreach (var itemset in Pall)
+                    //{
+                    //    Console.WriteLine("FPTree: {0}", itemset.Key);
+                    //    foreach (var item in itemset.Value)
+                    //    {
+                    //        Console.WriteLine("Node: {0}", item.Key);
+                    //        foreach (var key in item.Value)
+                    //            Console.Write("Item {0} count {1} -> ", key.Key, key.Value);
+                    //        Console.WriteLine();
+                    //    }
+                    //    Console.WriteLine();
+                    //}
                     //foreach (var itemset in Pall)
                     //{
                     //    Console.WriteLine("Item {0}: ", itemset.Key);
                     //    foreach (var item in itemset.Value)
                     //        Console.WriteLine("Item {0} count {1}", item.Key, item.Value);
                     //}
-                    Dictionary<List<int>, float> FPTreeCon = new Dictionary<List<int>, float>();
+                    Dictionary<string, float> FPTreeCon = new Dictionary<string, float>();
                     foreach (var itemset in Pall)
                     {
-                        List< int> keyValues = new List<int>( Pall[itemset.Key].Keys);
-                        List<List<int>> subsets = Bit.FindSubsets(keyValues, 0); //get all subsets
-                        foreach(var itms in subsets)
+                        FPTreeCon.Add (itemset.Key.ToString() , (float)tongHop[itemset.Key] / len * 100f);
+                        foreach (var item in itemset.Value)
                         {
-                            float itemsupport = FindSupport(len, Pall[itemset.Key], itms, tongHop[itemset.Key]);
-                            itms.Add(itemset.Key);
-                            FPTreeCon.Add(itms, itemsupport);
+                            List<int> keyValues = new List<int>(item.Value.Keys);
+                            //Console.WriteLine("keyValues {0}", string.Join(",", keyValues.ToArray()));
+                            List<List<int>> subsets = Bit.FindSubsets(keyValues, 0); //get all subsets    
+                            foreach (var itms in subsets)
+                            {
+                                if (itms.Count > 0)
+                                {
+                                    //Console.WriteLine("subsets {0}", string.Join(",", itms.ToArray()));
+                                    float itemsupport = FindSupport(len, Pall[itemset.Key], itms, tongHop[itemset.Key]);
+                                    itms.Add(itemset.Key);
+                                    if (itemsupport >= support && !FPTreeCon.ContainsKey(String.Join(",", itms.ToArray())))
+                                        FPTreeCon.Add(String.Join(",", itms.ToArray()), itemsupport);
+                                }
+                            }
                         }
                     }
                     //foreach (var itemset in FPTreeCon)
                     //{
                     //    Console.WriteLine("Item {0}  - support {1}", String.Join(", ", itemset.Key.ToArray()), itemset.Value);
                     //}
-                    using (StreamWriter outputFile = new StreamWriter("Output.txt"))
+                    using (StreamWriter outputFile = new StreamWriter("OutputFPGrowth.txt"))
                     {
                         foreach (var itemset in FPTreeCon)
-                            outputFile.WriteLine("{0}:{1}", String.Join(",", itemset.Key.ToArray()), itemset.Value);
+                            outputFile.WriteLine("{0}:{1}", itemset.Key, itemset.Value);
                     }
                 }
                 else
@@ -227,15 +258,17 @@ namespace Mpi.NET1
                     // xây dựng FP-Tree cục bộ
                     FPTree tree = CreateTree(Tcucbo);
                     // Conditional Patern Bases
-                    Dictionary<int, Dictionary<int, int>> P = new Dictionary<int, Dictionary<int, int>>();
+                    Dictionary < int,Dictionary<int, Dictionary<int, int>>> 
+                        P = new Dictionary<int, Dictionary<int, Dictionary<int, int>>>();
                     foreach (var itemset in Fre)
                     {
-                        Dictionary<int, int> itemsetCollection = new Dictionary<int, int>();
+                        Dictionary<int, Dictionary<int, int>> nodeParent = new Dictionary<int, Dictionary<int, int>>();
                         //List<int> itemsetCollectionKey = new List<int>();
                         //int itemsetCollectionValue = 0;
                         //Console.WriteLine("Node: {0}", itemset.Key);
                         for (int j = 0; j < tree.countNode; j++)
                         {
+                            Dictionary<int, int> itemsetCollection = new Dictionary<int, int>();
                             var node = tree.arrayNode[j];
                             if (node.itemName == itemset.Key && !node.visited)
                             {
@@ -253,23 +286,79 @@ namespace Mpi.NET1
                                         itemsetCollection.Add(nodeparent.itemName, node.count);
                                     }
                                     //Console.Write("Item:{0}({1})->", nodeparent.itemName, node.count);
-                                    nodeparent = nodeparent.nodeParent;
-                                    
+                                    nodeparent = nodeparent.nodeParent;   
+                                }
+                                if (itemsetCollection.Count > 0)
+                                {
+                                    if (nodeParent.ContainsKey(itemsetCollection.Keys.Last()))
+                                    {
+                                        Dictionary<int, int> keyValues = nodeParent[itemsetCollection.Keys.Last()];
+                                        foreach(var item in itemsetCollection)
+                                        {
+                                            if(keyValues.ContainsKey(item.Key))
+                                            { 
+                                                keyValues[item.Key] += item.Value;
+                                            }
+                                            else
+                                            {
+                                                keyValues.Add(item.Key, item.Value);
+                                            }
+                                        }
+                                        nodeParent[itemsetCollection.Keys.Last()] = keyValues;
+                                    }
+                                    else
+                                    {
+                                        nodeParent.Add(itemsetCollection.Keys.Last(), itemsetCollection);
+                                    }
                                 }
                             }
                         }
-                        P.Add(itemset.Key, itemsetCollection);
+                        P.Add(itemset.Key, nodeParent);
                     }
                     comm.Send(P, 0, 3);// gửi tới các tiến trình 0, tag 3
                 }
             }
         }
-        private static float FindSupport(int len, Dictionary<int, int> keyValuePairs, List<int> items, int value)
+        private static Dictionary<int,int> CountValue(Dictionary<int, Dictionary<int,int>> keyValues)
+        {
+            Dictionary<int, int> cout = new Dictionary<int, int>();
+            foreach(var keyvalue in keyValues)
+            {
+                foreach(var kv in keyvalue.Value)
+                {
+                    if (cout.ContainsKey(kv.Key))
+                        cout[kv.Key] += kv.Value;
+                    else
+                        cout.Add(kv.Key, kv.Value);
+                }
+            }
+            return cout;
+        }
+        private static void PrintDictionary(Dictionary<int, int> keyValuePairs)
+        {
+            foreach (var kv in keyValuePairs)
+            {
+                Console.WriteLine("Item {0} count {1} ", kv.Key, kv.Value);
+            }
+        }
+        private static float FindSupport(int len, Dictionary<int, Dictionary<int, int>> keyValuePairs, List<int> items, int value)
         {
             if (items.Count == 0)
-                return (float)value/len*100f;
+                return (float)value / len * 100f;
             float support = 0;
-            int min = items.Select(k => keyValuePairs[k]).Min();
+            int min = 0;
+            foreach (var kv in keyValuePairs)
+            {
+                if (kv.Value.Count > 0)
+                {
+                    Dictionary<int, int> kvalue = kv.Value;
+                    try
+                    {
+                        min += items.Select(k => kvalue[k]).Min();
+                    }
+                    catch { }
+                }
+            }
             support = (float)min / len * 100f;
             return support;
         }
