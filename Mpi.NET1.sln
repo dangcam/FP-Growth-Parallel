@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.27428.2015
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mpi.NET1", "Mpi.NET1\Mpi.NET1.csproj", "{7F13DF1A-BEE8-46C6-B107-BC7F0B0E6DD1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mpi.NET2", "..\Mpi.NET2\Mpi.NET2\Mpi.NET2.csproj", "{B67BB0EB-3A89-41C2-A0D3-B9BDE514CB3B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{7F13DF1A-BEE8-46C6-B107-BC7F0B0E6DD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7F13DF1A-BEE8-46C6-B107-BC7F0B0E6DD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7F13DF1A-BEE8-46C6-B107-BC7F0B0E6DD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B67BB0EB-3A89-41C2-A0D3-B9BDE514CB3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B67BB0EB-3A89-41C2-A0D3-B9BDE514CB3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B67BB0EB-3A89-41C2-A0D3-B9BDE514CB3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B67BB0EB-3A89-41C2-A0D3-B9BDE514CB3B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
